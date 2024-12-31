@@ -568,3 +568,55 @@ class oversampling:
             float: The ratio of minority neighbors among the given neighbors.
         """
         return sum(self.y[neighbors] == 1) / len(neighbors)
+
+
+    def genetic_algorithm(self, ancesstor, fit_function, neighbors, iterations, size, region):
+        """
+        Run the genetic algorithm to synthesize a new data point based on neighbor chromosomes.
+
+        Args:
+            ancesstor (int): The index of the original minority sample (used in domain-based functions).
+            fit_function (function): A function to calculate fitness (inland, borderline, or trapped).
+            neighbors (np.ndarray): Indices of neighbor samples.
+            iterations (int): Number of GA iterations to perform.
+            size (int): Dimension of each chromosome (number of features).
+            region (str): The region type, e.g., 'inland', 'borderline', 'trapped'.
+
+        Returns:
+            np.ndarray: The best gene (feature vector) after GA evolution.
+        """
+        # Build initial population
+        chromosomes = []
+        population_diversity = self.calculate_population_density(neighbors)
+
+        for idx in neighbors:
+            gene_vector = self.x[idx]
+            loss_value = fit_function(ancesstor, gene_vector)
+            ch = Chromosome(gene=gene_vector, loss=loss_value)
+            chromosomes.append(ch)
+
+        chromosomes = np.array(chromosomes)
+        losses = np.array([ch.loss for ch in chromosomes])
+        probabilities = self.calculate_probabilities(losses)
+
+        # Main GA loop
+        for iteration in range(iterations):
+            new_gene = self.crossover(
+                chromosomes,
+                probabilities,
+                size,
+                region,
+                iteration,
+                population_diversity
+            )
+            new_loss = fit_function(ancesstor, new_gene)
+            new_chromosome = Chromosome(new_gene, new_loss)
+            chromosomes = np.append(chromosomes, new_chromosome)
+
+            # Recompute losses/probabilities
+            losses = np.array([ch.loss for ch in chromosomes])
+            probabilities = self.calculate_probabilities(losses)
+
+        # Choose the best chromosome based on final probabilities
+        best_ch = np.random.choice(chromosomes, p=probabilities)
+        return best_ch.gene
