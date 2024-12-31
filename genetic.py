@@ -295,3 +295,19 @@ class oversampling:
         final_fitness = np.max((self.alpha_ratio * model_prob) + (self.beta_ratio * loss), 0)
 
         return final_fitness
+
+
+    def fitness_function(self, _type):
+        """
+        Return the appropriate fitness calculation function based on minority region type.
+
+        Args:
+            _type (str): Either 'inland', 'borderline', or 'trapped'.
+
+        Returns:
+            function: A method reference that calculates the corresponding fitness.
+        """
+        if _type in ['inland', 'borderline']:
+            return self.calculate_inland_borderline_loss
+        elif _type == 'trapped':
+            return self.calculate_trapped_loss
