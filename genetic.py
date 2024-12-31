@@ -443,3 +443,19 @@ class oversampling:
                     self.y = np.append(self.y, temp_y)
 
         return self.x, self.y
+
+
+    def choose_random_samples(self, minority_set, size, prob):
+        """
+        Randomly choose 'size' samples from minority_set according to probability 'prob'.
+
+        Args:
+            minority_set (list or np.ndarray): Indices of minority samples.
+            size (int): Number of samples to choose.
+            prob (np.ndarray): Probability distribution over minority_set.
+
+        Returns:
+            list: List of chosen indices.
+        """
+        indices = [np.random.choice(minority_set, p=prob) for _ in range(size)]
+        return indices
