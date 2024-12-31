@@ -342,3 +342,36 @@ def extract_zipFiles(src, dest):
     except Exception as e:
         # Catch and report any other exceptions
         print(f"An error occurred while extracting {src}: {str(e)}")
+
+
+
+def normalizer(df, method='min-max'):
+    """
+    Normalizes a DataFrame using the specified method.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame to be normalized. Assumes the last column is the target.
+    method (str): Normalization method ('min-max', 'z-score', or 'log'). Default is 'min-max'.
+
+    Returns:
+    pd.DataFrame: Normalized DataFrame with the target column preserved.
+    """
+    # Select the appropriate normalization method
+    if method == 'min-max':
+        normalizer = MinMaxScaler()
+    elif method == 'z-score':
+        normalizer = StandardScaler()
+    elif method == 'log':
+        normalizer = PowerTransformer(method='box-cox')
+    else:
+        raise ValueError(f"Unsupported normalization method: {method}")
+
+    # Apply normalization to all columns except the target
+    array_norm = normalizer.fit_transform(df[df.columns[:-1]])
+    df_norm = pd.DataFrame(array_norm, columns=df.columns[:-1])
+    # Preserve the target column
+    df_norm['target'] = df.target
+
+    return df_norm
+
+
