@@ -149,3 +149,12 @@ class oversampling:
         repRatioList = np.abs(np.round(repRatioList))
 
         return repRatioList
+
+
+
+    def train_initial_fitness_function(self):
+        """
+        Train the initialFitnessFunction model on the full DataFrame, assuming
+        that the last column is the label.
+        """
+        self.initialFitnessFunction.fit(self.df[self.df.columns[:-1]], self.df[self.df.columns[-1]])
