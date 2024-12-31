@@ -517,3 +517,24 @@ class oversampling:
             return 1
         else:
             return count_min / count_maj
+
+    def calculate_probabilities(self, x):
+        """
+        Convert a set of values into a probability distribution using a softmax approach.
+
+        Args:
+            x (np.ndarray): Array of values (e.g., losses or fitness scores).
+
+        Returns:
+            np.ndarray: Corresponding probabilities summing to 1.
+        """
+        # Shift values by subtracting the max to improve numeric stability
+        x -= np.max(x)
+        exp_x = np.exp(x)
+        softmax_x = exp_x / np.sum(exp_x)
+
+        # If numerical instability leads to NaN, fall back to uniform distribution
+        if np.any(np.isnan(softmax_x)):
+            return np.full_like(x, 1.0 / x.size)
+
+        return softmax_x
