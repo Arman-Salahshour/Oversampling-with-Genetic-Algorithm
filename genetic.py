@@ -328,3 +328,37 @@ class oversampling:
         differences = np.sum(dataset - point, axis=1)
         index = np.where(differences == 0)[0][0]
         return index
+
+
+    def calculate_distance(self, point: np.array, dataset: np.array):
+
+      return HEEM(point, dataset, self.features_mask)
+
+
+    def calculate_distance(self, point: np.array, dataset: np.array):
+        """
+        Calculate the distance between a single 'point' and each row in 'dataset'.
+
+        If self.features_mask is set (and at least one element is True, indicating
+        categorical columns), use the HEEM metric. Otherwise, use standard Euclidean distance.
+
+        Args:
+            point (np.ndarray): Single data point (1D array).
+            dataset (np.ndarray): Matrix of data points (2D array).
+
+        Returns:
+            np.ndarray: Array of distances with shape (len(dataset),).
+        """
+        # If no mask or mask is all False => purely numerical => Euclidean
+        if self.features_mask is None or not np.any(self.features_mask):
+            return np.linalg.norm(dataset - point, axis=1)
+        else:
+            # Use HEEM for combined categorical + numerical data
+            return HEEM(point, dataset, self.features_mask)
+    
+        
+    def calculate_total_distance(self, point: np.array) -> np.array:
+        if self.features_mask is None or not np.any(self.features_mask):
+            return np.linalg.norm(self.x - point, axis=1)
+        else:
+            return HEEM(point, self.x, self.features_mask)
