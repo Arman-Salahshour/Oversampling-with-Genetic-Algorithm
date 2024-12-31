@@ -133,3 +133,87 @@ def evaluation(true_labels, predicted_labels, probabilities, mean_fpr, average='
         'roc_auc': roc_auc,
         'mean_fpr': mean_fpr,
     }
+
+
+def k_fold(X_fold, Y_fold, model, n_splits=10, shuffle=True, random_state=2021, average='binary', deep=False, stacking=False, test_samples=None, augmented_data=None):
+    """
+    Performs K-Fold cross-validation for a given model.
+
+    Parameters:
+    X_fold (array): Features for cross-validation.
+    Y_fold (array): Labels for cross-validation.
+    model: Machine learning or deep learning model to be evaluated.
+    n_splits (int): Number of folds for cross-validation. Default is 10.
+    shuffle (bool): Whether to shuffle data before splitting. Default is True.
+    random_state (int): Seed for reproducibility. Default is 2021.
+    average (str): Type of averaging for evaluation metrics. Default is 'binary'.
+    deep (bool): Flag to indicate if the model is deep learning. Default is False.
+    stacking (bool): Flag to indicate if stacking is being used. Default is False.
+    test_samples (tuple): Optional test samples for evaluation.
+    augmented_data (tuple): Optional augmented training data.
+
+    Returns:
+    np.array: Aggregated metrics (accuracy, precision, recall, F1, AUC, etc.).
+    """
+    # Initialize lists to store metrics across folds
+    precision, recall, F1, accuracy, specificity, tprs, aucs = ([] for _ in range(7))
+    mean_fpr = np.linspace(0, 1, 100)  # Generate evenly spaced FPR values for interpolation
+
+    if test_samples:
+        # If test samples are provided, evaluate directly on them
+        X_test, Y_test = test_samples
+        predictions, probability_predictions = train_model((X_fold, Y_fold), (X_test, Y_test), model, deep=deep, stacking=stacking)
+        metrics = evaluation(Y_test, predictions, probability_predictions, mean_fpr, average=average)
+        return np.array(
+            [
+                metrics['accuracy'],
+                metrics['recall'],
+                metrics['specificity'],
+                metrics['precision'],
+                metrics['F1'],
+                AUC(mean_fpr, metrics['tprs']),
+                metrics['tprs'],
+                mean_fpr,
+            ], dtype=object
+        )
+    else:
+        # Perform K-Fold cross-validation
+        cv = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+        for train_index, test_index in cv.split(X_fold):
+            # Split data into training and validation sets
+            X_train, X_test = X_fold[train_index], X_fold[test_index]
+            Y_train, Y_test = Y_fold[train_index], Y_fold[test_index]
+
+            if augmented_data:
+                # If augmented data is provided, append it to the training set
+                X_train = np.append(X_train, augmented_data[0], axis=0)
+                Y_train = np.append(Y_train, augmented_data[1])
+
+            # Train the model and evaluate on the validation set
+            predictions, probability_predictions = train_model((X_train, Y_train), (X_test, Y_test), model, deep=deep, stacking=stacking)
+            metrics = evaluation(Y_test, predictions, probability_predictions, mean_fpr)
+
+            # Collect metrics for each fold
+            accuracy.append(metrics['accuracy'])
+            precision.append(metrics['precision'])
+            recall.append(metrics['recall'])
+            F1.append(metrics['F1'])
+            specificity.append(metrics['specificity'])
+            tprs.append(metrics['tprs'])
+            aucs.append(metrics['roc_auc'])
+
+        # Compute mean TPR and AUC across folds
+        mean_tpr = np.mean(tprs, axis=0)
+        mean_auc = AUC(mean_fpr, mean_tpr)
+        return np.array(
+            [
+                np.array(accuracy).mean(),
+                np.array(recall).mean(),
+                np.array(specificity).mean(),
+                np.array(precision).mean(),
+                np.array(F1).mean(),
+                mean_auc,
+                mean_tpr,
+                mean_fpr,
+            ], dtype=object
+        )
