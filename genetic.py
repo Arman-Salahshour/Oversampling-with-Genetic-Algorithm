@@ -474,3 +474,26 @@ class oversampling:
         neighbors = self.find_neighbors(i)
         majority_count = sum(1 for j in neighbors if j in self.ml)
         return majority_count
+
+
+    def find_avg_distance(self, i):
+        """
+        Compute the average distance between sample i and its minority neighbors.
+
+        Args:
+            i (int): Index in self.x.
+
+        Returns:
+            float: The average Euclidean distance to minority neighbors.
+        """
+        neighbors = self.find_neighbors(i)
+        dis = 0
+        count = 0
+        for j in neighbors:
+            if j in self.ms:
+                dis += distance.euclidean(self.x[i], self.x[j])
+                count += 1
+
+        if count == 0:
+            return 0
+        return dis / count
