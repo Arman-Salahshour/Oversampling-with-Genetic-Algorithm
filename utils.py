@@ -217,3 +217,49 @@ def k_fold(X_fold, Y_fold, model, n_splits=10, shuffle=True, random_state=2021, 
                 mean_fpr,
             ], dtype=object
         )
+
+
+
+def k_fold_results(x, y, models=models, test_samples=None, n_splits=10, deep_name='Deep', stacking_name='Stacking', augmented_data=None):
+    """
+    Runs K-Fold cross-validation on multiple models and summarizes results.
+
+    Parameters:
+    x (pd.DataFrame): Feature dataset.
+    y (pd.Series): Label dataset.
+    models (dict): Dictionary of models to evaluate.
+    test_samples (tuple): Optional test samples for evaluation.
+    n_splits (int): Number of folds for cross-validation. Default is 10.
+    deep_name (str): Keyword to identify deep learning models. Default is 'Deep'.
+    stacking_name (str): Keyword to identify stacking models. Default is 'Stacking'.
+    augmented_data (tuple): Optional augmented training data.
+
+    Returns:
+    pd.DataFrame: Summary of evaluation metrics for all models.
+    """
+    # Initialize a DataFrame to store evaluation metrics for each model
+    df = pd.DataFrame(index=['accuracy', 'recall', 'specificity', 'precision', 'F1', 'AUC', 'tpr', 'fpr'])
+
+    # Convert input data to NumPy arrays for processing
+    X_fold = x.to_numpy()
+    Y_fold = y.to_numpy()
+
+    for item in models.items():
+        model_name, model = item
+        if deep_name in model_name:
+            # Perform K-Fold evaluation for deep learning models
+            df[model_name] = k_fold(X_fold, Y_fold, model, test_samples=test_samples, n_splits=n_splits, deep=True, augmented_data=augmented_data)
+        elif stacking_name in model_name:
+            # Perform K-Fold evaluation for stacking models
+            df[model_name] = k_fold(X_fold, Y_fold, model, test_samples=test_samples, n_splits=n_splits, stacking=True, augmented_data=augmented_data)
+        else:
+            # Perform K-Fold evaluation for other models
+            df[model_name] = k_fold(X_fold, Y_fold, model, test_samples=test_samples, n_splits=n_splits, augmented_data=augmented_data)
+
+    # Visualize the ROC AUC curves for all models
+    plot_roc_auc(df)
+
+    # Drop 'tpr' and 'fpr' rows as they are not part of the evaluation metrics
+    df.drop(index=['tpr', 'fpr'], axis=0, inplace=True)
+
+    return df
