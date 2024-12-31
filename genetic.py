@@ -311,3 +311,20 @@ class oversampling:
             return self.calculate_inland_borderline_loss
         elif _type == 'trapped':
             return self.calculate_trapped_loss
+
+
+    def find_index(self, point, dataset):
+        """
+        Find the index in 'dataset' where 'point' is exactly located
+        by summing the differences.
+
+        Args:
+            point (np.ndarray): The data point to find.
+            dataset (np.ndarray): Array of points.
+
+        Returns:
+            int: The index of 'point' in 'dataset'.
+        """
+        differences = np.sum(dataset - point, axis=1)
+        index = np.where(differences == 0)[0][0]
+        return index
