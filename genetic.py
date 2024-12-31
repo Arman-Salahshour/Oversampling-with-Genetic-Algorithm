@@ -497,3 +497,23 @@ class oversampling:
         if count == 0:
             return 0
         return dis / count
+
+
+    def find_min_maj_ratio(self, i):
+        """
+        Calculate the ratio of minority neighbors to majority neighbors for sample i.
+
+        Args:
+            i (int): Index in self.x.
+
+        Returns:
+            float: Ratio = (# of minority neighbors) / (# of majority neighbors).
+                If the denominator (major neighbors) is zero, returns 1.
+        """
+        neighbors = self.find_neighbors(i)
+        count_min = sum(1 for j in neighbors if j in self.ms)
+        count_maj = self.k - count_min  # total neighbors is k
+        if count_maj == 0:
+            return 1
+        else:
+            return count_min / count_maj
