@@ -226,3 +226,72 @@ class oversampling:
         final_fitness = np.max((self.alpha_ratio * model_prob) + (self.beta_ratio * loss), 0)
 
         return final_fitness
+
+
+    def calculate_inland_borderline_loss(self, in_bo: int, synthesized: np.array):
+        """
+        Compute the loss for 'inland' or 'borderline' minority samples, focusing on
+        maximizing distance from major neighbors and adjusting distance to inland/border neighbors.
+
+        Args:
+            in_bo (int): Index of the inland/borderline minority sample.
+            synthesized (np.ndarray): The newly generated sample.
+
+        Returns:
+            float: A combined fitness value that accounts for model prediction
+                and domain-based distance metrics.
+        """
+        Ii = np.array([], dtype=int)  # inland neighbors
+        Bi = np.array([], dtype=int)  # borderline neighbors
+        Mi = np.array([], dtype=int)  # major neighbors
+
+        neighbors = self.find_neighbors(in_bo)
+        neighbors = neighbors[neighbors != in_bo]
+        minor_neighbors = neighbors[np.in1d(neighbors, self.ms)]
+
+        minority_in_bo_index = np.where(self.ms == in_bo)[0][0]
+        cluster = self.cfs_minor.clusters[minority_in_bo_index]
+
+        # Identify inland or borderline neighbors in the same cluster
+        for i in minor_neighbors:
+            minority_index = np.where(self.ms == i)[0][0]
+            if self.cfs_minor.clusters[minority_index] == cluster:
+                if minority_index in self.cfs_minor.regions['inland']:
+                    Ii = np.append(Ii, i)
+                    neighbors_j = self.find_neighbors(i)
+                    major_neighbors = neighbors_j[np.in1d(neighbors_j, self.ml)]
+                    Mi = np.append(Mi, major_neighbors)
+
+                    minor_neighbors_j = neighbors_j[np.in1d(neighbors_j, self.ms)]
+                    for j in minor_neighbors_j:
+                        mn_index = np.where(self.ms == j)[0][0]
+                        if mn_index in self.cfs_minor.regions['borderline']:
+                            Bi = np.append(Bi, j)
+
+        # Distances
+        if len(Mi) != 0:
+            major_max_distance = np.max(self.calculate_distance(synthesized, self.x[Mi]))
+        else:
+            major_max_distance = np.inf
+
+        if len(Ii) != 0:
+            inland_maxima_distance = np.max(self.calculate_distance(synthesized, self.x[Ii]))
+        else:
+            inland_maxima_distance = np.inf
+
+        if len(Bi) != 0:
+            margine = np.max(self.calculate_distance(synthesized, self.x[Bi]))
+        else:
+            # if there are no borderline neighbors, use a large margin
+            margine = 2 * major_max_distance
+
+        # Domain-based distance loss
+        loss = 0.5 * (inland_maxima_distance ** 2
+                    + max(0, np.nan_to_num(margine - major_max_distance)) ** 2)
+        loss = 1 - self.sigmoid(loss)
+
+        # Combine with ML model predictions
+        model_prob = self.initialFitnessFunction.predict_proba(synthesized.reshape(1, -1))[:, self.tar][0]
+        final_fitness = np.max((self.alpha_ratio * model_prob) + (self.beta_ratio * loss), 0)
+
+        return final_fitness
