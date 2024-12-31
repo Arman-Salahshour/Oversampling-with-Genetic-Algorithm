@@ -100,3 +100,9 @@ class oversampling:
         self.train_initial_fitness_function()
 
 
+    def ref_model(self):
+        """
+        Initialize and train the KNeighborsClassifier based on the current x and y.
+        """
+        self.knn = KNeighborsClassifier(n_neighbors=self.k)
+        self.knn.fit(self.x, self.y)
