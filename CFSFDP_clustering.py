@@ -39,3 +39,26 @@ def HEEM(reference_record, coordinates, mask):
         return np.linalg.norm(all_distances, ord=2, axis=1)  # Euclidean norm
     else:
         return np.linalg.norm(numerical_distances, ord=2, axis=1)
+
+
+
+def calculate_importance(self, density, sigma, sigma_weight=0.4):
+    """
+    Calculates importance scores based on density and sigma values.
+
+    Args:
+        density (np.array): Density values for data points.
+        sigma (np.array): Sigma values for data points.
+        sigma_weight (float): Weight assigned to sigma in the importance calculation. Default is 0.4.
+
+    Returns:
+        np.array: Importance scores for data points.
+    """
+    # Normalize density and sigma
+    normalized_density = (density - np.min(density)) / (np.max(density) - np.min(density))
+    normalized_sigma = (sigma - np.min(sigma)) / (np.max(sigma) - np.min(sigma))
+
+    # Compute weighted importance scores
+    importance = (sigma_weight * normalized_sigma) + ((1 - sigma_weight) * normalized_density)
+
+    return importance
