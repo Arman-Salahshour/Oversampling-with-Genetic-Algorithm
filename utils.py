@@ -263,3 +263,82 @@ def k_fold_results(x, y, models=models, test_samples=None, n_splits=10, deep_nam
     df.drop(index=['tpr', 'fpr'], axis=0, inplace=True)
 
     return df
+
+
+
+
+def framingham_dataset():
+    """
+    Downloads the Framingham Heart Study dataset using the Kaggle API.
+
+    Precondition:
+    - The Kaggle API key (kaggle.json) must be available in the specified Google Drive path.
+    
+    Postcondition:
+    - The dataset is downloaded to the current working directory as a zip file.
+    """
+    # Copy Kaggle API key to the appropriate directory
+    !cp /content/gdrive/MyDrive/.kaggle/kaggle.json ~/.kaggle/kaggle.json
+    # Set correct permissions for the Kaggle API key
+    !chmod 600 ~/.kaggle/kaggle.json
+    # Download the dataset using the Kaggle API
+    !kaggle datasets download -d aasheesh200/framingham-heart-study-dataset
+
+
+def cleveland_dataset():
+    """
+    Downloads the Cleveland Heart Disease dataset using the Kaggle API.
+
+    Precondition:
+    - The Kaggle API key (kaggle.json) must be available in the specified Google Drive path.
+    
+    Postcondition:
+    - The dataset is downloaded to the current working directory as a zip file.
+    """
+    # Copy Kaggle API key to the appropriate directory
+    !cp /content/gdrive/MyDrive/.kaggle/kaggle.json ~/.kaggle/kaggle.json
+    # Set correct permissions for the Kaggle API key
+    !chmod 600 ~/.kaggle/kaggle.json
+    # Download the dataset using the Kaggle API
+    !kaggle datasets download -d ritwikb3/heart-disease-cleveland
+
+
+def bmc_dataset():
+    """
+    Downloads the BMC Heart Failure Clinical dataset using the Kaggle API.
+
+    Precondition:
+    - The Kaggle API key (kaggle.json) must be available in the specified Google Drive path.
+    
+    Postcondition:
+    - The dataset is downloaded to the current working directory as a zip file.
+    """
+    # Copy Kaggle API key to the appropriate directory
+    !cp /content/gdrive/MyDrive/.kaggle/kaggle.json ~/.kaggle/kaggle.json
+    # Set correct permissions for the Kaggle API key
+    !chmod 600 ~/.kaggle/kaggle.json
+    # Download the dataset using the Kaggle API
+    !kaggle datasets download -d andrewmvd/heart-failure-clinical-data
+
+
+def extract_zipFiles(src, dest):
+    """
+    Extracts the contents of a zip file to a specified destination folder.
+
+    Parameters:
+    src (str): Path to the zip file.
+    dest (str): Directory where the contents of the zip file should be extracted.
+
+    Postcondition:
+    - The contents of the zip file are extracted to the specified destination.
+    """
+    try:
+        # Open and extract all files from the zip archive
+        with zipfile.ZipFile(src, "r") as zip_:
+            zip_.extractall(dest)
+    except zipfile.BadZipFile:
+        # Handle cases where the file is not a valid zip file
+        print(f"Error: The file {src} is not a valid zip file.")
+    except Exception as e:
+        # Catch and report any other exceptions
+        print(f"An error occurred while extracting {src}: {str(e)}")
