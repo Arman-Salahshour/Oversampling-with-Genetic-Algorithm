@@ -707,3 +707,24 @@ class oversampling:
         self.update_mutation_rate(iteration)
 
         return new_gene
+
+
+    def fit_resample(self, x, y):
+        """
+        A standard API method (similar to scikit-learn) for oversampling.
+
+        Args:
+            x (np.ndarray): Original features.
+            y (np.ndarray): Original labels.
+
+        Returns:
+            (np.ndarray, np.ndarray): The oversampled features and labels.
+        """
+        self.x = x
+        self.y = y
+
+        # Optionally retrain or re-initialize the model if needed
+        # self.ref_model()
+
+        self.generate_synthetic_samples(desire=130)
+        return self.x, self.y
