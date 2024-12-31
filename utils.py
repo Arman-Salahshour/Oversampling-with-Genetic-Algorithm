@@ -412,3 +412,55 @@ def get_describeData(df, dataTypeDict):
     features_mask = np.array(features_mask)
 
     return describeData, features_mask
+
+
+
+from sklearn.neighbors import NearestNeighbors
+class UnderSampling():
+  def __init__(self, df, features_mask, majority_sign, k=2):
+    self.df = df
+    self.features_mask = features_mask
+    self.majority_sign = majority_sign
+    self.data = self.df.to_numpy()
+    self.features = self.data[:, :-1]
+    self.target = self.data[:, -1]
+    self.k = k
+
+  def calculate_total_distance(self, point: np.array) -> np.array:
+      # return HEEM(point, self.features, self.features_mask)
+      return np.linalg.norm(self.features - point, axis=1)
+
+  def find_neighbors(self, i):
+    distances = self.calculate_total_distance(self.features[i])
+    return np.argsort(distances)[0:self.k]
+
+  def tomek_links(self):
+    # Fit a k-NN model on the data
+    pairs = []
+    for i in range(len(self.features)):
+      pair = self.find_neighbors(i)
+      pairs.append(pair)
+
+    # Identify pairs with different class labels
+    tomek_pairs = [i for i, j in pairs if (self.target[i] == self.majority_sign) and (self.target[i] != self.target[j])]
+    tomek_pairs = list(set(tomek_pairs))
+
+    # Remove majority class instances from identified pairs
+    return self.df.drop(tomek_pairs, axis=0)
+
+  def edited_nearest_neighbors(self):
+    # Fit a k-NN model on the data
+    sets = []
+    for i in range(len(self.features)):
+      set_ = self.find_neighbors(i)
+      sets.append(set_)
+
+    enn_removeable = []
+    for set_ in sets:
+      if len(set(self.target[set_])) > 1:
+        for i in set_:
+          if self.target[i] == self.majority_sign:
+            enn_removeable.append(i)
+
+    # Remove majority class instances from identified pairs
+    return self.df.drop(enn_removeable, axis=0)
