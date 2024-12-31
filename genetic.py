@@ -377,3 +377,69 @@ class oversampling:
         distances = self.calculate_total_distance(self.x[i])
         # Sort by ascending distance, exclude the sample itself
         return np.argsort(distances)[1 : self.k + 1]
+
+
+
+    def generate_synthetic_samples(self, desire=3000):
+        """
+        Main driver for oversampling:
+        1) Calculate replication ratio for minority samples
+        2) Cluster minority/major samples (build cfs_minor, cfs_major)
+        3) For each minority sample, run genetic_algorithm to create new synthetic points.
+
+        Args:
+            desire (int): The target total number of minority samples.
+
+        Returns:
+            (np.ndarray, np.ndarray): The updated feature matrix (self.x) and label vector (self.y).
+        """
+        # 1. Calculate the replication ratio for each minority sample
+        replication_ratio = self.calculate_replication_ratio(self.ms, desire)
+
+        # Sort minority indices by descending replication ratio
+        minor_sorting = np.argsort(replication_ratio)[::-1]
+        self.ms = self.ms[minor_sorting]
+
+        # 2. Cluster minority & major sets (assumes cluster_coordinates is available)
+        self.cfs_minor = cluster_coordinates(self.x[self.ms], features_mask=self.features_mask, neighbors_num=self.k)
+        self.cfs_major = cluster_coordinates(self.x[self.ml], features_mask=self.features_mask, neighbors_num=self.k)
+
+        # 3. Generate synthetic samples using the genetic algorithm
+        for index, i in tqdm(enumerate(self.ms), desc="Processing"):
+            if len(self.y[self.y == 1]) >= desire:
+                break
+
+            # Determine region: 'inland', 'borderline', or 'trapped'
+            if index in self.cfs_minor.regions['inland']:
+                region = 'inland'
+            elif index in self.cfs_minor.regions['borderline']:
+                region = 'borderline'
+            else:
+                region = 'trapped'
+
+            ancesstor = i
+            h = replication_ratio[index]
+
+            # Generate new samples h times
+            for _ in range(int(h)):
+                neighbors = self.find_neighbors(i)
+                # Add the original sample into the neighbor pool
+                neighbors = np.append(neighbors, i)
+
+                new_sample = self.genetic_algorithm(
+                    ancesstor=ancesstor,
+                    fit_function=self.fitness_function(region),
+                    neighbors=neighbors,
+                    iterations=self.genetic_iteration,
+                    size=self.feature_num,
+                    region=region
+                )
+
+                # Check if the newly generated sample belongs to minority label
+                temp_y = 1
+                if temp_y == self.tar:
+                    # Append to self.x, self.y
+                    self.x = np.append(self.x, new_sample.reshape(1, -1), axis=0)
+                    self.y = np.append(self.y, temp_y)
+
+        return self.x, self.y
