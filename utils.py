@@ -375,3 +375,40 @@ def normalizer(df, method='min-max'):
     return df_norm
 
 
+def get_describeData(df, dataTypeDict):
+    """
+    Describes dataset features based on their data type.
+
+    Parameters:
+    df (pd.DataFrame): The input DataFrame containing features and a target column.
+    dataTypeDict (dict): A dictionary mapping feature names to their data types 
+                         ('binary', 'category', or 'continuous').
+
+    Returns:
+    tuple: 
+      - describeData (dict): A dictionary containing feature summaries:
+        - For categorical features: Lists of unique values.
+        - For continuous features: Min, max, mean, and standard deviation.
+      - features_mask (np.array): Boolean array indicating categorical features (True) or numerical (False).
+    """
+    describeData = {}
+    features_mask = []
+
+    for f in df.columns[:-1]:  # Exclude the target column
+        if dataTypeDict[f] == 'binary' or dataTypeDict[f] == 'category':
+            # Summarize categorical or binary features with unique values
+            describeData[f] = df[f].unique()
+            features_mask.append(True)
+        elif dataTypeDict[f] == 'continuous':
+            # Summarize continuous features with basic statistics
+            describeData[f] = {
+                'min': df[f].min(),
+                'max': df[f].max(),
+                'mean': df[f].mean(),  # Fixed typo: .max() -> .mean()
+                'std': df[f].std()
+            }
+            features_mask.append(False)
+
+    features_mask = np.array(features_mask)
+
+    return describeData, features_mask
