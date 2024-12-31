@@ -459,3 +459,18 @@ class oversampling:
         """
         indices = [np.random.choice(minority_set, p=prob) for _ in range(size)]
         return indices
+
+
+    def find_major(self, i):
+        """
+        Count how many neighbors of sample i are from the majority class.
+
+        Args:
+            i (int): Index in self.x.
+
+        Returns:
+            int: Number of major class neighbors.
+        """
+        neighbors = self.find_neighbors(i)
+        majority_count = sum(1 for j in neighbors if j in self.ml)
+        return majority_count
