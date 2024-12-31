@@ -92,3 +92,44 @@ def train_model(train_set, test_set, model, random_state=2021, deep=False, stack
         predictions = predictions.astype(float).flatten()
 
     return predictions, probability_predictions
+
+
+def evaluation(true_labels, predicted_labels, probabilities, mean_fpr, average='binary'):
+    """
+    Computes classification metrics and ROC AUC.
+
+    Parameters:
+    true_labels (array): True labels for the test data.
+    predicted_labels (array): Predicted labels from the model.
+    probabilities (array): Predicted probabilities for positive class.
+    mean_fpr (array): Mean false positive rate for ROC curve interpolation.
+    average (str): Type of averaging for metrics. Default is 'binary'.
+
+    Returns:
+    dict: Dictionary containing classification metrics and ROC AUC values.
+    """
+    # Compute confusion matrix components
+    tn, fp, fn, tp = confusion_matrix(true_labels, predicted_labels).ravel()
+
+    # Calculate metrics
+    accuracy = (tp + tn) / (tp + tn + fp + fn)
+    precision = precision_score(true_labels, predicted_labels, average=average)
+    recall = recall_score(true_labels, predicted_labels, average=average)
+    specificity = tn / (tn + fp)
+    F1 = f1_score(true_labels, predicted_labels, average=average)
+    
+    # Compute ROC curve and AUC
+    fpr, tpr, _ = roc_curve(true_labels, probabilities)
+    tprs = interp(mean_fpr, fpr, tpr)
+    roc_auc = AUC(fpr, tpr)
+
+    return {
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'specificity': specificity,
+        'F1': F1,
+        'tprs': tprs,
+        'roc_auc': roc_auc,
+        'mean_fpr': mean_fpr,
+    }
