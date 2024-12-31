@@ -555,3 +555,16 @@ class oversampling:
             self.initial_mutation_rate
             - (self.initial_mutation_rate / self.genetic_iteration) * iteration_number
         )
+
+
+    def calculate_population_density(self, neighbors):
+        """
+        Calculate the fraction of neighbors that belong to the minority class.
+
+        Args:
+            neighbors (np.ndarray): Indices of neighbor samples.
+
+        Returns:
+            float: The ratio of minority neighbors among the given neighbors.
+        """
+        return sum(self.y[neighbors] == 1) / len(neighbors)
