@@ -1,3 +1,4 @@
+from constants import *
 from matplotlib import pyplot as plt
 
 
@@ -41,3 +42,53 @@ def plot_roc_auc(df):
 
     # Show the plot
     plt.show()
+
+
+
+def train_model(train_set, test_set, model, random_state=2021, deep=False, stacking=False):
+    """
+    Trains a given model on training data and evaluates it on test data.
+
+    Parameters:
+    train_set (tuple): Tuple containing training features (X_train) and labels (Y_train).
+    test_set (tuple): Tuple containing test features (X_test) and labels (Y_test).
+    model: Machine learning or deep learning model to be trained.
+    random_state (int): Seed for reproducibility. Default is 2021.
+    deep (bool): Flag to indicate if a deep learning model is used. Default is False.
+    stacking (bool): Flag to indicate if a stacking model is used. Default is False.
+
+    Returns:
+    tuple: Predictions and probability predictions for the test set.
+    """
+    # Extract train and test sets
+    X_train, Y_train = train_set
+    X_test, Y_test = test_set
+
+    if deep:
+        # Configure learning rate scheduler and compile the model
+        lr_scheduler = tf.keras.callbacks.LearningRateScheduler(lambda epoch: 1e-1 / 10**(epoch / 50))
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), 
+                      loss='binary_crossentropy', 
+                      metrics=[tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
+        # Train the deep learning model
+        model.fit(X_train, Y_train, epochs=40, validation_data=test_set, verbose=False)
+
+    if stacking:
+        # Train stacking models
+        model.fit(X_train, Y_train)
+
+    if deep or stacking:
+        # Generate predictions for deep or stacking models
+        probability_predictions = model.predict(X_test)
+        predictions = copy.deepcopy(probability_predictions)
+        predictions[predictions >= 0.5] = 1.  # Apply threshold
+        predictions[predictions < 0.5] = 0.
+        predictions = predictions.flatten()
+    else:
+        # Train traditional ML models and generate predictions
+        model.fit(X_train, Y_train)
+        probability_predictions = model.predict_proba(X_test)[:, 1]
+        predictions = probability_predictions >= 0.46  # Custom threshold
+        predictions = predictions.astype(float).flatten()
+
+    return predictions, probability_predictions
