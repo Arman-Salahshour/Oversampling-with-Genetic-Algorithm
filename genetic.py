@@ -620,3 +620,90 @@ class oversampling:
         # Choose the best chromosome based on final probabilities
         best_ch = np.random.choice(chromosomes, p=probabilities)
         return best_ch.gene
+
+
+
+    def crossover(self, chromosomes, probabilities, size, region, iteration, population_diversity):
+        """
+        Perform crossover and mutation to produce a new gene.
+
+        Args:
+            chromosomes (np.ndarray): Array of Chromosome objects.
+            probabilities (np.ndarray): Selection probabilities for each chromosome.
+            size (int): Dimensionality of each gene (number of features).
+            region (str): Region type ('inland', 'borderline', 'trapped').
+            iteration (int): Current iteration in GA (used to update mutation rate).
+            population_diversity (float): Not currently used, but can adapt mutation if needed.
+
+        Returns:
+            np.ndarray: The newly created gene (feature vector).
+        """
+        # Select two parents
+        ch_i = np.random.choice(chromosomes, 1, p=probabilities)[0]
+        ch_j = np.random.choice(chromosomes, 1, p=probabilities)[0]
+
+        # Probability for bitmask distribution
+        p_vals = np.array([ch_i.loss, ch_j.loss])
+        p_vals = self.calculate_probabilities(p_vals)
+
+        # Bitmask to choose which parent's feature to take
+        bitmask = np.random.choice([0, 1], size, p=p_vals)
+        new_gene = np.empty(size)
+
+        # alpha used for arithmetic crossover in continuous features
+        alpha = (p_vals[0] if ch_i.loss < ch_j.loss else p_vals[1]) / (p_vals[0] + p_vals[1])
+
+        # Recombine each feature
+        for f_idx, feature_name in enumerate(self.dataTypeDict.keys()):
+            feature_type = self.dataTypeDict[feature_name]
+
+            # Discrete (binary/category)
+            if feature_type in ['binary', 'category']:
+                # Mutation possibility
+                if np.random.random() < self.mutation_rate:
+                    # Mutate: pick a random valid category or flip binary
+                    if feature_type == 'binary':
+                        new_gene[f_idx] = 1 - (ch_i.gene[f_idx] if bitmask[f_idx] == 0 else ch_j.gene[f_idx])
+                    else:
+                        # choose a random category from describeData
+                        new_gene[f_idx] = random.choice(self.describeData[feature_name])
+                else:
+                    # Inherit from parent
+                    if bitmask[f_idx] == 0:
+                        new_gene[f_idx] = ch_i.gene[f_idx]
+                    else:
+                        new_gene[f_idx] = ch_j.gene[f_idx]
+
+            # Continuous
+            elif feature_type == 'continuous':
+                # For 'inland' or 'borderline' we might do arithmetic crossover
+                if region in ['inland', 'borderline']:
+                    # define boundaries
+                    min_val = min(ch_i.gene[f_idx], ch_j.gene[f_idx]) - alpha * abs(ch_i.gene[f_idx] - ch_j.gene[f_idx])
+                    min_val = max(0, min_val)
+                    max_val = max(ch_i.gene[f_idx], ch_j.gene[f_idx]) + alpha * abs(ch_i.gene[f_idx] - ch_j.gene[f_idx])
+                    new_gene[f_idx] = np.random.uniform(min_val, max_val)
+
+                # For 'trapped', simple one-point crossover
+                else:  # region == 'trapped'
+                    new_gene[f_idx] = ch_i.gene[f_idx] if bitmask[f_idx] == 0 else ch_j.gene[f_idx]
+
+                # Mutation step
+                if np.random.random() < self.mutation_rate:
+                    mutated_value = np.random.normal(self.describeData[feature_name]['mean'],
+                                                    self.describeData[feature_name]['std'])
+                    sign = -1 if (mutated_value < self.describeData[feature_name]['mean']) else 1
+                    mutated_value = new_gene[f_idx] + (sign * mutated_value)
+                    new_gene[f_idx] = mutated_value
+
+                # Clip values to remain in valid range
+                new_gene[f_idx] = np.clip(
+                    new_gene[f_idx],
+                    self.describeData[feature_name]['min'],
+                    self.describeData[feature_name]['max']
+                )
+
+        # Update the mutation rate for the next iteration
+        self.update_mutation_rate(iteration)
+
+        return new_gene
