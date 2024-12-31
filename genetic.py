@@ -538,3 +538,20 @@ class oversampling:
             return np.full_like(x, 1.0 / x.size)
 
         return softmax_x
+
+
+    def update_mutation_rate(self, iteration_number):
+        """
+        Decrease the mutation rate as the number of iterations increases.
+
+        Args:
+            iteration_number (int): Current iteration of the GA process.
+        """
+        # Ensure iteration_number is within [0, self.genetic_iteration]
+        iteration_number = max(0, min(iteration_number, self.genetic_iteration))
+
+        # Linear decrease from initial_mutation_rate down to 0 over all iterations
+        self.mutation_rate = (
+            self.initial_mutation_rate
+            - (self.initial_mutation_rate / self.genetic_iteration) * iteration_number
+        )
