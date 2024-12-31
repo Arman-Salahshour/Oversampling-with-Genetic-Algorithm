@@ -106,3 +106,18 @@ class oversampling:
         """
         self.knn = KNeighborsClassifier(n_neighbors=self.k)
         self.knn.fit(self.x, self.y)
+
+
+    def sigmoid(self, x):
+        """
+        Calculate the sigmoid of x.
+
+        Args:
+            x (float or np.ndarray): Input value(s).
+
+        Returns:
+            float or np.ndarray: Sigmoid function result.
+        """
+        return 1 / (1 + np.exp(-x))
+    
+    
