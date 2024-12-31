@@ -158,3 +158,71 @@ class oversampling:
         that the last column is the label.
         """
         self.initialFitnessFunction.fit(self.df[self.df.columns[:-1]], self.df[self.df.columns[-1]])
+        
+
+    def calculate_trapped_loss(self, trapped: int, synthesized: np.array):
+        """
+        Compute the loss for a 'trapped' minority sample, emphasizing the relationship
+        to nearby minority neighbors vs. major neighbors.
+
+        Args:
+            trapped (int): Index of the trapped minority sample.
+            synthesized (np.ndarray): The newly generated sample.
+
+        Returns:
+            float: A combined fitness value considering both the model’s prediction
+                (weighted by alpha_ratio) and the domain-based 'trapped' penalty
+                (weighted by beta_ratio).
+        """
+        Ti = np.array([], dtype=int)  # array for trapped neighbors
+        Mi = np.array([], dtype=int)  # array for major neighbors around trapped neighbors
+        neighbors = self.find_neighbors(trapped)
+        neighbors = neighbors[neighbors != trapped]
+        minor_neighbors = neighbors[np.in1d(neighbors, self.ms)]
+
+        # We assume cfs_minor & its 'regions' and 'clusters' are assigned externally
+        minority_trapped_index = np.where(self.ms == trapped)[0][0]
+        cluster = self.cfs_minor.clusters[minority_trapped_index]
+
+        # Identify neighbors in the same cluster that are also 'trapped'
+        for i in minor_neighbors:
+            minority_index = np.where(self.ms == i)[0][0]
+            if minority_index in self.cfs_minor.regions['trapped']:
+                if self.cfs_minor.clusters[minority_index] == cluster:
+                    Ti = np.append(Ti, i)
+                    neighbors_j = self.find_neighbors(i)
+                    major_neighbors = neighbors_j[np.in1d(neighbors_j, self.ml)]
+                    Mi = np.append(Mi, major_neighbors)
+
+        # Calculate distances
+        if len(Mi) != 0:
+            Mi_maxima_distance = np.max(self.calculate_distance(synthesized, self.x[Mi]))
+        else:
+            Mi_maxima_distance = 0
+
+        if len(Ti) != 0:
+            Ti_maxima_distance = np.max(self.calculate_distance(synthesized, self.x[Ti]))
+        else:
+            Ti_maxima_distance = np.inf
+
+        # Domain-based penalty
+        loss_alpha = max(0, 1 - (np.nan_to_num(Ti_maxima_distance - Mi_maxima_distance)))
+
+        if len(Ti) != 0:
+            Ti_mean = np.mean(self.x[Ti], axis=0)
+            cosine = np.absolute(
+                np.dot(Ti_mean, synthesized) / (np.linalg.norm(Ti_mean) * np.linalg.norm(synthesized))
+            )
+        else:
+            cosine = 0
+
+        loss_beta = 1 / (1 - cosine) if (1 - cosine) != 0 else 1
+        loss = 0.5 * (loss_alpha) + 0.5 * (loss_beta)
+        loss = np.nan_to_num(loss)
+        loss = 1 - self.sigmoid(loss)
+
+        # Combine with ML model prediction
+        model_prob = self.initialFitnessFunction.predict_proba(synthesized.reshape(1, -1))[:, self.tar][0]
+        final_fitness = np.max((self.alpha_ratio * model_prob) + (self.beta_ratio * loss), 0)
+
+        return final_fitness
