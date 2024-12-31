@@ -362,3 +362,18 @@ class oversampling:
             return np.linalg.norm(self.x - point, axis=1)
         else:
             return HEEM(point, self.x, self.features_mask)
+        
+        
+    def find_neighbors(self, i):
+        """
+        Retrieve the indices of the k-nearest neighbors to x[i].
+
+        Args:
+            i (int): Index of the reference sample in self.x.
+
+        Returns:
+            np.ndarray: Indices of the k nearest neighbors.
+        """
+        distances = self.calculate_total_distance(self.x[i])
+        # Sort by ascending distance, exclude the sample itself
+        return np.argsort(distances)[1 : self.k + 1]
