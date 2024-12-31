@@ -85,3 +85,60 @@ def tune_knn(x_fold, columns, rng=(1, 31), n_splits=32, shuffle=True, random_sta
 
     return accuracy
 
+
+
+
+class Imputer:
+    """
+    A class for handling missing values using KNN Imputer and performing data cleanup.
+
+    Attributes:
+    df_init (pd.DataFrame): Original dataset with missing values.
+    df (pd.DataFrame): Dataset after imputation.
+    """
+    def __init__(self, df, k=15):
+        """
+        Initializes the Imputer with a dataset and performs KNN Imputation.
+
+        Parameters:
+        df (pd.DataFrame): Input dataset with missing values.
+        k (int): Number of neighbors for KNN Imputer. Default is 15.
+        """
+        self.df_init = df
+        self.df = df.copy()
+        imputer = KNNImputer(n_neighbors=k)
+        # Perform KNN Imputation
+        self.df[self.df.columns] = imputer.fit_transform(self.df)
+
+    def nearest_value(self, x, uniqueValues):
+        """
+        Finds the nearest value to `x` from the set of unique values.
+
+        Parameters:
+        x (float): Value to find the nearest match for.
+        uniqueValues (array): Array of unique values to compare against.
+
+        Returns:
+        float: Nearest value from `uniqueValues`.
+        """
+        diff = np.abs(uniqueValues - x)
+        return uniqueValues[np.argmin(diff)]
+
+    def clean(self, missValCols, dataTypeDict):
+        """
+        Cleans imputed columns based on their data types.
+
+        Parameters:
+        missValCols (dict): Dictionary mapping columns to their count of missing values.
+        dataTypeDict (dict): Dictionary mapping columns to their data types.
+        
+        Modifies:
+        - Columns of the DataFrame based on their data type (e.g., rounding, category matching).
+        """
+        for col in missValCols.keys():
+            if missValCols[col] > 0:
+                dataType = dataTypeDict[col]
+                if dataType == 'category' or dataType == 'binary':
+                    # Map imputed values to the nearest unique value in the original dataset
+                    uniqueValues = np.array(self.df_init[col].unique()[:-1])
+                    self.df[col] = self.df[col].apply(lambda x: self.nearest_value(x, uniqueValues))
