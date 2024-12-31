@@ -120,4 +120,32 @@ class oversampling:
         """
         return 1 / (1 + np.exp(-x))
     
-    
+        
+    def calculate_replication_ratio(self, minorities, desired_size):
+        """
+        Calculate how many synthetic samples each minority instance should generate
+        based on the ratio of minority to majority neighbors.
+
+        Args:
+            minorities (np.ndarray): Indices of minority samples.
+            desired_size (int): Desired total size for the minority class.
+
+        Returns:
+            np.ndarray: Array of replication counts for each minority sample.
+        """
+        minProbabilities = []
+        for ms_index in minorities:
+            ratio = self.find_min_maj_ratio(ms_index)
+            minProbabilities.append(ratio)
+
+        minProbabilities = np.array(minProbabilities)
+        practical_size = desired_size - len(minorities)
+        if practical_size < 0:
+            raise AssertionError("The desired size must be greater than the size of the current minority samples.")
+
+        # Normalize
+        minProbabilitiesNormal = minProbabilities / np.sum(minProbabilities)
+        repRatioList = minProbabilitiesNormal * practical_size
+        repRatioList = np.abs(np.round(repRatioList))
+
+        return repRatioList
