@@ -101,3 +101,22 @@ class CFSFDP:
         return np.array(density)
     
     
+
+    def fit_transform(self, clusters_num: int = 2, quantile: float = 0.02):
+        """
+        Fits the clustering model and assigns cluster labels.
+
+        Args:
+            clusters_num (int): Number of clusters.
+            quantile (float): Quantile for density estimation.
+
+        Returns:
+            dict: Cluster labels for data points.
+        """
+        self.clusters_num = clusters_num
+        self.density = self.calculate_density(quantile=quantile)
+        self.sigma = self.calculate_sigma(self.density)
+        self.centers = self.find_cluster_centers(self.sigma, self.density, clusters_num=clusters_num)
+        self.clusters = self.cluster(self.centers)
+
+        return self.clusters
