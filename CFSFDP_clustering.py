@@ -120,3 +120,42 @@ class CFSFDP:
         self.clusters = self.cluster(self.centers)
 
         return self.clusters
+    
+    
+        
+    def make_border(self, clusters, density_quantile=0.5):
+        """
+        Classifies points into inland, borderline, or trapped regions based on density.
+
+        Args:
+            clusters (np.array): Cluster labels for data points.
+            density_quantile (float): Threshold quantile for density classification. Default is 0.5.
+
+        Returns:
+            dict: Dictionary with regions classified as 'inland', 'borderline', or 'trapped'.
+        """
+        densities = []
+        regions = defaultdict(list)
+        for i, point in enumerate(self.coordinates):
+            cluster = clusters[i]
+            neighbors = self.find_nearest_neighbors(point)
+            neighbors = neighbors[neighbors != i]  # Exclude the point itself
+            common_cluster = np.where(clusters == cluster)[0]  # Points in the same cluster
+            common_neighborhood_cluster = common_cluster[np.in1d(common_cluster, neighbors)]
+            densities.append(len(common_neighborhood_cluster) / self.k)  # Density calculation
+
+        density_threshold = np.quantile(densities, density_quantile)  # Density threshold
+        inland = np.where(densities >= density_threshold)[0]
+        regions['inland'] = np.append(regions['inland'], inland)
+
+        for i, point in enumerate(self.coordinates):
+            if densities[i] < density_threshold:
+                neighbors = self.find_nearest_neighbors(point)
+                neighbors = neighbors[neighbors != i]
+                if np.in1d(neighbors, regions['inland']).any():
+                    regions['borderline'] = np.append(regions['borderline'], [i])
+                else:
+                    regions['trapped'] = np.append(regions['trapped'], [i])
+
+        return regions
+
