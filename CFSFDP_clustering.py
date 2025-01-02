@@ -80,3 +80,24 @@ class CFSFDP:
         self.k = k
         self.distance_type = distance_type
         self.features_mask = features_mask
+
+
+    def calculate_density(self, quantile=0.02) -> np.array:
+        """
+        Computes density for each point based on its neighbors.
+
+        Args:
+            quantile (float): Proportion of neighbors to consider for density estimation.
+
+        Returns:
+            np.array: Density values for all data points.
+        """
+        density = []
+        for point in self.coordinates:
+            distances = self.calculate_distance(point)
+            dc = np.quantile(distances, quantile)  # Cutoff distance
+            dij = np.exp(-1 * (self.calculate_distance(point) / dc) ** 2)  # Gaussian kernel
+            density.append(np.sum(dij))  # Summing over neighbors
+        return np.array(density)
+    
+    
