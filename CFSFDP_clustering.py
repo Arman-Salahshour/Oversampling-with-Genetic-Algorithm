@@ -42,7 +42,7 @@ def HEEM(reference_record, coordinates, mask):
 
 
 
-def calculate_importance(self, density, sigma, sigma_weight=0.4):
+def calculate_importance(density, sigma, sigma_weight=0.4):
     """
     Calculates importance scores based on density and sigma values.
 
@@ -62,3 +62,21 @@ def calculate_importance(self, density, sigma, sigma_weight=0.4):
     importance = (sigma_weight * normalized_sigma) + ((1 - sigma_weight) * normalized_density)
 
     return importance
+
+
+
+class CFSFDP:
+    def __init__(self, coordinates: list, k: int, distance_type: int = 2, features_mask=None):
+        """
+        Initializes the CFSFDP clustering algorithm.
+
+        Args:
+            coordinates (list): Array of data points.
+            k (int): Number of neighbors for density estimation.
+            distance_type (int): Distance metric type (1: Manhattan, 2: Euclidean, np.inf: Chebyshev).
+            features_mask (np.array, optional): Boolean array indicating categorical and numerical features.
+        """
+        self.coordinates = coordinates
+        self.k = k
+        self.distance_type = distance_type
+        self.features_mask = features_mask
